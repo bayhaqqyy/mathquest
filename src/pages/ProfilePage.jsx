@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { userStats, topics } from '../data/topics'
+import { topics } from '../data/topics'
 import { useSettings } from '../contexts/SettingsContext'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -13,12 +13,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 }
 
-const achievements = [
-  { emoji: '🏅', label: 'Ahli Persamaan Linear', date: '15 Apr' },
-  { emoji: '🌟', label: 'Streak 7 Hari', date: '12 Apr' },
-  { emoji: '💎', label: '100 Soal Diselesaikan', date: '10 Apr' },
-  { emoji: '🎯', label: 'Akurasi 90%', date: '8 Apr' },
-]
+// Achievements are dynamically generated in the component
 
 export default function ProfilePage() {
   const completedTopics = topics.filter(t => t.progress >= 100).length
@@ -29,6 +24,20 @@ export default function ProfilePage() {
   
   // Auth context for logout
   const { logout, user } = useAuth()
+
+  // Dynamic achievements based on User Model
+  const achievements = []
+  if (user) {
+    if ((user.total_solved || 0) >= 1) achievements.push({ emoji: '🌱', label: 'Langkah Pertama', date: 'Mencoba 1 Soal' })
+    if ((user.total_solved || 0) >= 50) achievements.push({ emoji: '🔥', label: 'Ahli Rajin', date: '50 Soal Selesai' })
+    if ((user.total_solved || 0) >= 100) achievements.push({ emoji: '💎', label: 'Ratusan Terselesaikan', date: '100 Soal Selesai' })
+    if ((user.total_accuracy || 0) >= 80 && (user.total_solved || 0) >= 10) achievements.push({ emoji: '🎯', label: 'Penembak Jitu', date: 'Akurasi 80%+' })
+    if ((user.total_accuracy || 0) >= 95 && (user.total_solved || 0) >= 20) achievements.push({ emoji: '👑', label: 'Si Tak Terkalahkan', date: 'Akurasi 95%+' })
+    if ((user.level || 0) >= 5) achievements.push({ emoji: '🌟', label: 'Si Cerdas', date: 'Mencapai Level 5' })
+  }
+  if (achievements.length === 0) {
+    achievements.push({ emoji: '🚀', label: 'Mulai Perjalanan', date: 'Ayo belajar!' })
+  }
 
   const settingsItems = [
     { id: 'notifications', type: 'toggle', icon: 'notifications', label: 'Notifikasi', desc: 'Pengingat belajar harian' },
@@ -117,7 +126,7 @@ export default function ProfilePage() {
                   if (item.type === 'toggle') {
                     toggleSetting(item.id)
                   } else if (item.id === 'help') {
-                    alert('Mohon email ke support@mathquest.id untuk bantuan.')
+                    alert('Mohon email ke elhaqi921@gmail.com untuk bantuan.')
                   } else if (item.id === 'info') {
                     alert('MathQuest v1.0.0\nBelajar Matematika Jadi Menyenangkan!\nDibuat dengan Vite, React, Golang & Python.')
                   }

@@ -133,13 +133,19 @@ export default function DashboardPage() {
         <motion.section variants={itemVariants} className="flex flex-col gap-4">
           <h2 className="font-headline font-semibold text-lg tracking-tight text-on-surface">Pilih Topik</h2>
           <div className="grid grid-cols-2 gap-4">
-            {topics.map((topic, index) => (
+            {topics.map((topic, index) => {
+              // Merge static topic with dynamic progress from backend
+              const userTopic = user?.topic_progresses?.find(tp => tp.topic_id === topic.id.toLowerCase())
+              const dynamicProgress = userTopic ? userTopic.progress : topic.progress
+              const isUnlocked = userTopic ? userTopic.unlocked || topic.unlocked : topic.unlocked
+
+              return (
               <motion.div
                 key={topic.id}
                 variants={itemVariants}
                 custom={index}
               >
-                {topic.unlocked ? (
+                {isUnlocked ? (
                   <Link to={`/topic/${topic.id}`}>
                     <motion.div
                       whileHover={{ scale: 1.03 }}
@@ -150,11 +156,11 @@ export default function DashboardPage() {
                       <div>
                         <h4 className="font-headline font-medium text-sm text-on-surface">{topic.name}</h4>
                         <div className="flex items-center justify-between mt-2">
-                          <span className="font-mono text-[10px] text-on-surface-variant font-medium">{topic.progress}%</span>
+                          <span className="font-mono text-[10px] text-on-surface-variant font-medium">{dynamicProgress}%</span>
                           <div className="h-1 w-12 bg-surface-variant rounded-full overflow-hidden">
                             <motion.div
                               initial={{ width: 0 }}
-                              animate={{ width: `${topic.progress}%` }}
+                              animate={{ width: `${dynamicProgress}%` }}
                               transition={{ duration: 0.8, ease: 'easeOut', delay: 0.3 + index * 0.1 }}
                               className="h-full bg-primary rounded-full"
                             />
@@ -176,7 +182,7 @@ export default function DashboardPage() {
                   </div>
                 )}
               </motion.div>
-            ))}
+            )})}
           </div>
         </motion.section>
       </main>

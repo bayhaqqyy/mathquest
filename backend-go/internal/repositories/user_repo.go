@@ -11,6 +11,7 @@ type UserRepository interface {
 	FindByEmail(email string) (*models.User, error)
 	FindByID(id uint) (*models.User, error)
 	Update(user *models.User) error
+	UpsertTopicProgress(userID uint, topicID string, increment int) error
 }
 
 type userRepo struct {
@@ -36,11 +37,35 @@ func (r *userRepo) FindByEmail(email string) (*models.User, error) {
 
 func (r *userRepo) FindByID(id uint) (*models.User, error) {
 	var user models.User
-	err := r.db.First(&user, id).Error
+	err := r.db.Preload("TopicProgresses").First(&user, id).Error
 	if err != nil {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *userRepo) UpsertTopicProgress(userID uint, topicID string, increment int) error {
+	var tp models.TopicProgress
+	err := r.db.Where("user_id = ? AND topic_id = ?", userID, topicID).First(&tp).Error
+	if err != nil {
+		// Not found, create new
+		tp = models.TopicProgress{
+			UserID:   userID,
+			TopicID:  topicID,
+			Progress: increment,
+		}
+		if tp.Progress > 100 {
+			tp.Progress = 100
+		}
+		return r.db.Create(&tp).Error
+	}
+
+	// Update existing
+	tp.Progress += increment
+	if tp.Progress > 100 {
+		tp.Progress = 100
+	}
+	return r.db.Save(&tp).Error
 }
 
 func (r *userRepo) Update(user *models.User) error {

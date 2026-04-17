@@ -4,6 +4,7 @@ import (
 	"math-backend/internal/models"
 	"math-backend/internal/repositories"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -67,6 +68,7 @@ func (c *SessionController) SubmitResult(ctx *gin.Context) {
 		prevTotal := user.TotalSolved
 		user.TotalSolved += input.TotalProblems
 		
+		
 		if user.TotalSolved > 0 {
 			// Back-calculate total historical corrects, add new, then find new average
 			pastCorrects := (user.TotalAccuracy / 100.0) * float64(prevTotal)
@@ -75,6 +77,14 @@ func (c *SessionController) SubmitResult(ctx *gin.Context) {
 		}
 		
 		c.userRepo.Update(user)
+
+		// 4. Update Topic Specific Progress
+		// 1 correct answer = 5% progress in that specific topic
+		if input.Topic != "" && input.CorrectCount > 0 {
+			topicProgressGain := input.CorrectCount * 5
+			topicIDLower := strings.ToLower(input.Topic)
+			c.userRepo.UpsertTopicProgress(userID, topicIDLower, topicProgressGain)
+		}
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{

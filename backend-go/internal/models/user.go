@@ -15,10 +15,11 @@ type User struct {
 	Level         int            `gorm:"default:1" json:"level"`
 	Streak        int            `gorm:"default:0" json:"streak"`
 	TotalSolved   int            `gorm:"default:0" json:"total_solved"`
-	TotalAccuracy float64        `gorm:"default:0.0" json:"accuracy"` // e.g., 85.5%
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
-	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
+	TotalAccuracy   float64          `gorm:"default:0.0" json:"accuracy"` // e.g., 85.5%
+	TopicProgresses []TopicProgress  `gorm:"foreignKey:UserID" json:"topic_progresses"`
+	CreatedAt       time.Time        `json:"created_at"`
+	UpdatedAt       time.Time        `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt   `gorm:"index" json:"-"`
 }
 
 type Session struct {
