@@ -2,6 +2,6 @@ fastapi==0.110.0
 uvicorn==0.27.1
 sympy==1.12
 matplotlib==3.8.3
-google-generativeai==0.4.1
+google-generativeai>=0.7.2
 pydantic==2.6.3
 python-dotenv==1.0.1
