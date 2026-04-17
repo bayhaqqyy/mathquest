@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import sympy as sp
 import matplotlib.pyplot as plt
-import google.generativeai as genai
+from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -24,23 +24,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Gemini
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    
-# Use gemini-1.5-flash for speed and efficiency
-generation_config = {
-    "temperature": 0.3,
-    "top_p": 0.95,
-    "top_k": 40,
-    "max_output_tokens": 8192,
-    "response_mime_type": "application/json",
-}
-model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash",
-    generation_config=generation_config,
-)
+# Initialize OpenRouter (OpenAI compatible)
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+client = None
+
+if OPENROUTER_API_KEY:
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=OPENROUTER_API_KEY,
+    )
+
+# Use 'openrouter/auto' as requested or default to a fast model
+MODEL_NAME = "openrouter/auto"
 
 class GenerateRequest(BaseModel):
     topic: str
@@ -102,42 +97,48 @@ async def generate_problem(req: GenerateRequest):
             # 2. Plot Generation (Matplotlib)
             plot_b64 = generate_plot(a, b, c)
             
-            # 3. AI Generation for Hints and Steps (Gemini)
-            prompt = f"""Kamu adalah guru matematika yang ramah. Berikan panduan untuk soal persamaan linear berikut:
+            # Default Fallback content (used if Gemini fails or quota is exceeded)
+            hints = ["Coba pindahkan konstanta", "Satukan semua angka tanpa x", f"Bagi kedua ruas dengan {a}"]
+            steps = [
+                {"title": "Pindahkan Konstanta", "explanation": f"Kurangi kedua ruas dengan {b}", "math": f"{a}x = {c} - {b}"},
+                {"title": "Hitung Pengurangan", "explanation": "Operasikan sisi kanan", "math": f"{a}x = {c - b}"},
+                {"title": "Temukan x", "explanation": f"Bagi kedua ruas dengan {a}", "math": f"x = {ans}"}
+            ]
+
+            # 3. AI Generation for Hints and Steps (OpenRouter)
+            if client:
+                try:
+                    prompt = f"""Kamu adalah guru matematika yang ramah. Berikan panduan untuk soal persamaan linear berikut:
 Persamaan: {str_expr}
 Jawaban akhir: x = {ans}
 
 Buatkan JSON eksklusif dengan struktur persis seperti ini:
 {{
-  "hints": [
-    "string: Hint level 1 (ringan, pemanasan, apa yang harus dipindah)",
-    "string: Hint level 2 (spesifik cara hitung)",
-    "string: Hint level 3 (hampir bocoran)"
-  ],
+  "hints": ["string", "string", "string"],
   "steps": [
-    {{
-      "title": "string: Judul pendek langkah (misal: 'Pindahkan Konstanta')",
-      "explanation": "string: Penjelasan santai dan suportif",
-      "math": "string: Eksekusi matematika murni dengan padding spasi contoh: '{a}x = {c} - {b}'"
-    }}
+    {{"title": "string", "explanation": "string", "math": "string"}}
   ]
 }}
-Gunakan bahasa Indonesia yang santai tapi baku (Pakai 'kamu').
+Gunakan bahasa Indonesia yang santai tapi baku.
 """
-            
-            # Fallback if Gemini fails/API key not set
-            if not GEMINI_API_KEY:
-                hints = ["Coba pindahkan konstanta", "Satukan semua angka tanpa x", f"Bagi kedua ruas dengan {a}"]
-                steps = [
-                    {"title": "Pindahkan Konstanta", "explanation": f"Kurangi kedua ruas dengan {b}", "math": f"{a}x = {c} - {b}"},
-                    {"title": "Hitung Pengurangan", "explanation": "Operasikan sisi kanan", "math": f"{a}x = {c - b}"},
-                    {"title": "Temukan x", "explanation": f"Bagi kedua ruas dengan {a}", "math": f"x = {ans}"}
-                ]
-            else:
-                response = model.generate_content(prompt)
-                data = json.loads(response.text)
-                hints = data.get("hints", [])
-                steps = data.get("steps", [])
+                    response = client.chat.completions.create(
+                        model=MODEL_NAME,
+                        messages=[{"role": "user", "content": prompt}],
+                    )
+                    
+                    content = response.choices[0].message.content
+                    
+                    # Clean markdown code blocks if present
+                    if "```" in content:
+                        content = content.split("```")[1]
+                        if content.startswith("json"):
+                            content = content[4:]
+                    
+                    ai_data = json.loads(content.strip())
+                    hints = ai_data.get("hints", hints)
+                    steps = ai_data.get("steps", steps)
+                except Exception as ai_err:
+                    print(f"OpenRouter API failed (using logic fallback): {ai_err}")
 
             # Final Payload Assembly
             payload = {
