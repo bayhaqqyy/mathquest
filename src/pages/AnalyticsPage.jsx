@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { weeklyActivity, topicStrengths } from '../data/problems'
-import { userStats } from '../data/topics'
+import { useAuth } from '../contexts/AuthContext'
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -12,14 +12,15 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 }
 
-const quickStats = [
-  { label: 'Akurasi', value: `${userStats.accuracy}%`, emoji: '🎯', bg: 'bg-secondary-container/20' },
-  { label: 'Soal Dijawab', value: `${userStats.totalSolved}`, emoji: '📝', bg: 'bg-primary-fixed/20' },
-  { label: 'Streak', value: `${userStats.streak} Hari`, emoji: '🔥', bg: 'bg-primary-container/20' },
-]
-
 export default function AnalyticsPage() {
+  const { user } = useAuth()
   const maxActivity = Math.max(...weeklyActivity.map(d => d.count), 1)
+
+  const quickStats = [
+    { label: 'Akurasi', value: `${(user?.total_accuracy || 0).toFixed(1)}%`, emoji: '🎯', bg: 'bg-secondary-container/20' },
+    { label: 'Soal Dijawab', value: `${user?.total_solved || 0}`, emoji: '📝', bg: 'bg-primary-fixed/20' },
+    { label: 'Streak', value: `${Math.floor((user?.total_solved || 0)/10)} Hari`, emoji: '🔥', bg: 'bg-primary-container/20' },
+  ]
 
   return (
     <motion.div

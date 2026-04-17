@@ -52,29 +52,29 @@ export default function ProfilePage() {
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-container to-primary-fixed-dim flex items-center justify-center text-3xl shadow-[0_4px_20px_rgba(45,42,38,0.1)] border-2 border-surface-variant/30 mb-4 cursor-pointer hover:scale-105 transition-transform">
             👨‍🎓
           </div>
-          <h1 className="font-headline font-bold text-xl text-on-surface">{userStats.name}</h1>
+          <h1 className="font-headline font-bold text-xl text-on-surface">{user?.name || 'Siswa'}</h1>
           <span className="font-mono text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full mt-2">
-            Level {userStats.level} • {userStats.xp} XP
+            Level {user?.level || 1} • {user?.xp || 0} XP
           </span>
           <p className="text-xs text-on-surface-variant mt-2">
-            {completedTopics}/{totalTopics} topik selesai
+            Pelajar Antusias
           </p>
         </motion.div>
 
         {/* Stats Summary */}
         <motion.div variants={itemVariants} className="flex justify-center gap-8 mt-6">
           <div className="text-center">
-            <p className="font-mono font-bold text-lg text-on-surface">{userStats.streak}</p>
-            <p className="text-[10px] text-on-surface-variant">🔥 Streak</p>
+            <p className="font-mono font-bold text-lg text-on-surface">{Math.floor((user?.total_solved || 0) / 10)}</p>
+            <p className="text-[10px] text-on-surface-variant">🔥 Streak (est)</p>
           </div>
           <div className="w-px bg-surface-variant"></div>
           <div className="text-center">
-            <p className="font-mono font-bold text-lg text-on-surface">{userStats.totalSolved}</p>
+            <p className="font-mono font-bold text-lg text-on-surface">{user?.total_solved || 0}</p>
             <p className="text-[10px] text-on-surface-variant">📝 Soal</p>
           </div>
           <div className="w-px bg-surface-variant"></div>
           <div className="text-center">
-            <p className="font-mono font-bold text-lg text-on-surface">{userStats.accuracy}%</p>
+            <p className="font-mono font-bold text-lg text-on-surface">{(user?.total_accuracy || 0).toFixed(1)}%</p>
             <p className="text-[10px] text-on-surface-variant">🎯 Akurasi</p>
           </div>
         </motion.div>

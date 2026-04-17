@@ -77,15 +77,3 @@ export const currentSession = {
   progress: 72,
   remaining: 3,
 }
-
-// User stats
-export const userStats = {
-  name: 'Rafli',
-  level: 5,
-  xp: 850,
-  streak: 12,
-  gems: 25,
-  totalSolved: 152,
-  accuracy: 85,
-  avatar: null,
-}

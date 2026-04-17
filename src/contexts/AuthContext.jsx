@@ -70,16 +70,7 @@ export function AuthProvider({ children }) {
       setUser(data.user)
       navigate('/')
     } catch (err) {
-      console.warn("Backend might be offline, using fallback auth:", err)
-      // Fallback for Demo Purposes if Go backend is not running yet
-      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-        const dummyUser = { id: 1, name: "Siswa MathQuest", email: email, level: 1, xp: 0, streak: 0 }
-        setUser(dummyUser)
-        setToken("dummy_token_123")
-        navigate('/')
-      } else {
-        setError(err.message)
-      }
+      setError(err.message === 'Failed to fetch' ? "Server backend tidak merespons" : err.message)
     } finally {
       setIsLoading(false)
     }
@@ -103,13 +94,7 @@ export function AuthProvider({ children }) {
       // Auto login after register
       await login(email, password)
     } catch (err) {
-      console.warn("Backend might be offline, using fallback auth:", err)
-      // Fallback
-      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-        await login(email, password)
-      } else {
-        setError(err.message)
-      }
+      setError(err.message === 'Failed to fetch' ? "Server backend tidak merespons" : err.message)
     } finally {
       setIsLoading(false)
     }

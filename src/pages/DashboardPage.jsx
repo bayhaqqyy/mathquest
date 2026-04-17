@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { topics, currentSession, userStats } from '../data/topics'
+import { topics, currentSession } from '../data/topics'
+import { useAuth } from '../contexts/AuthContext'
 
 function getGreeting() {
   const hour = new Date().getHours()
@@ -9,12 +10,6 @@ function getGreeting() {
   if (hour < 19) return 'Selamat Sore'
   return 'Selamat Malam'
 }
-
-const statsPills = [
-  { emoji: '⚡', value: `${850} XP`, bg: 'bg-primary-container/20', text: 'text-on-primary-container', border: 'border-primary-container/10' },
-  { emoji: '🔥', value: '12d Streak', bg: 'bg-primary-fixed/40', text: 'text-on-primary-fixed', border: 'border-primary-fixed/20' },
-  { emoji: '💎', value: '25 Gems', bg: 'bg-tertiary-container/20', text: 'text-on-tertiary-container', border: 'border-tertiary-container/10' },
-]
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -30,6 +25,15 @@ const itemVariants = {
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth()
+
+  // Dynamically constructed stats pills based on actual backend User Model
+  const statsPills = [
+    { emoji: '⚡', value: `${user?.xp || 0} XP`, bg: 'bg-primary-container/20', text: 'text-on-primary-container', border: 'border-primary-container/10' },
+    { emoji: '🎯', value: `${(user?.total_accuracy || 0).toFixed(1)}% Acc`, bg: 'bg-primary-fixed/40', text: 'text-on-primary-fixed', border: 'border-primary-fixed/20' },
+    { emoji: '🏅', value: `${user?.total_solved || 0} Solved`, bg: 'bg-tertiary-container/20', text: 'text-on-tertiary-container', border: 'border-tertiary-container/10' },
+  ]
+
   return (
     <motion.div
       variants={containerVariants}
@@ -51,10 +55,10 @@ export default function DashboardPage() {
             </div>
             <div className="flex flex-col justify-center">
               <h1 className="font-headline font-semibold text-lg tracking-tight text-on-surface">
-                {getGreeting()}, {userStats.name}! <span className="text-xl">👋</span>
+                {getGreeting()}, {user?.name || 'Siswa'}! <span className="text-xl">👋</span>
               </h1>
               <span className="font-mono text-xs font-medium text-primary bg-primary/10 w-fit px-2 py-0.5 rounded-full mt-0.5">
-                Level {userStats.level}
+                Level {user?.level || 1}
               </span>
             </div>
           </div>

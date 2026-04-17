@@ -22,9 +22,8 @@ services:
     build:
       context: ./engine-py
     container_name: mathquest_engine
-    environment:
-      # API Key must be set here or drawn from .env
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    env_file:
+      - ./engine-py/.env
     ports:
       - "5000:5000"
 
