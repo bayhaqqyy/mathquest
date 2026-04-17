@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
-	"math-backend/internal/config"
 	"net/http"
+	"time"
+
+	"math-backend/internal/config"
 
 	"github.com/gin-gonic/gin"
 )
@@ -44,21 +46,30 @@ func (c *ProblemController) GenerateProblem(ctx *gin.Context) {
 
 	// Call the Python Server using config URL
 	engineURL := c.config.EngineAPIURL + "/api/engine/generate"
-	resp, err := http.Post(engineURL, "application/json", bytes.NewBuffer(engineJSON))
+	client := &http.Client{Timeout: 20 * time.Second}
+	resp, err := client.Post(engineURL, "application/json", bytes.NewBuffer(engineJSON))
 	
 	if err != nil {
-		ctx.JSON(http.StatusServiceUnavailable, gin.H{"error": "Math engine is unavailable. Ensure python service is running."})
+		ctx.JSON(http.StatusServiceUnavailable, gin.H{"error": "AI terlalu lama merespons atau engine tidak tersedia. Coba lagi."})
 		return
 	}
 	defer resp.Body.Close()
 
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+
 	if resp.StatusCode != http.StatusOK {
-		ctx.JSON(resp.StatusCode, gin.H{"error": "Math engine returned an error"})
+		var engineError map[string]interface{}
+		if err := json.Unmarshal(bodyBytes, &engineError); err == nil {
+			if detail, ok := engineError["detail"].(string); ok && detail != "" {
+				ctx.JSON(resp.StatusCode, gin.H{"error": detail})
+				return
+			}
+		}
+		ctx.JSON(resp.StatusCode, gin.H{"error": "AI gagal membuat soal. Coba lagi."})
 		return
 	}
 
 	// Parse the response from Python
-	bodyBytes, _ := ioutil.ReadAll(resp.Body)
 	var result map[string]interface{}
 	json.Unmarshal(bodyBytes, &result)
 

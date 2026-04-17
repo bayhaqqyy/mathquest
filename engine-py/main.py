@@ -22,12 +22,18 @@ app.add_middleware(
 
 # Initialize OpenRouter (OpenAI compatible)
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+# Free models can be slow or temporarily unavailable, so fail fast and let the UI retry.
+OPENROUTER_TIMEOUT_SECONDS = float(os.getenv("OPENROUTER_TIMEOUT_SECONDS", "12"))
+OPENROUTER_MAX_TOKENS = int(os.getenv("OPENROUTER_MAX_TOKENS", "520"))
+OPENROUTER_PROVIDER_SORT = os.getenv("OPENROUTER_PROVIDER_SORT", "latency")
 client = None
 
 if OPENROUTER_API_KEY:
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
         api_key=OPENROUTER_API_KEY,
+        timeout=OPENROUTER_TIMEOUT_SECONDS,
+        max_retries=0,
     )
 
 # Use OpenRouter's free router by default. Override with OPENROUTER_MODEL for paid models.
@@ -176,44 +182,29 @@ def generate_ai_problem(topic_id, skill_id, difficulty):
     topic_name = topic["name"]
     seed = random.randint(100000, 999999)
 
-    prompt = f"""
-Kamu adalah generator soal matematika adaptif untuk aplikasi belajar.
-Buat SATU soal baru yang benar-benar sesuai topik dan subtopik berikut.
-
-Topik: {topic_name}
-Subtopik: {skill_name}
-Difficulty: {difficulty}
-Seed variasi: {seed}
-
-Aturan wajib:
-- Soal harus sesuai subtopik, bukan operasi hitung umum kecuali subtopiknya memang aritmatika.
-- Untuk topik Probabilitas, soal harus tentang pencacahan, permutasi, kombinasi, atau peluang. Jangan buat soal penjumlahan/pengurangan/perkalian biasa.
-- Gunakan angka kecil dan jawaban yang mudah diverifikasi.
-- Jawaban akhir harus berupa string singkat, misalnya "12", "3/5", "40%", atau "x = 4" jangan dipakai; cukup "4".
-- acceptedAnswers boleh memuat format jawaban lain yang setara.
-- Balas hanya JSON valid, tanpa markdown.
-
-Format JSON:
-{{
-  "question": "instruksi soal dalam Bahasa Indonesia",
-  "expression": "isi soal atau ekspresi yang ditampilkan",
-  "answer": "jawaban akhir",
-  "acceptedAnswers": ["format jawaban lain yang juga benar"],
-  "answerLabel": "label pendek input jawaban",
-  "hints": ["hint 1", "hint 2", "hint 3"],
-  "steps": [
-    {{"title": "judul", "explanation": "penjelasan singkat", "math": "langkah matematika"}}
-  ]
-}}
-"""
+    prompt = (
+        "Buat 1 soal matematika baru dalam Bahasa Indonesia. "
+        f"Topik={topic_name}; Subtopik={skill_name}; Difficulty={difficulty}; Seed={seed}. "
+        "Wajib sesuai subtopik. Jika Probabilitas, soal harus pencacahan/permutasi/kombinasi/peluang, bukan hitung tambah/kurang/perkalian biasa. "
+        "Angka kecil, jawaban mudah dicek. answer singkat saja, contoh 12 atau 3/5, bukan 'x = 4'. "
+        'Balas JSON valid saja: {"question":"","expression":"","answer":"","acceptedAnswers":[],"answerLabel":"","hints":["",""],"steps":[{"title":"","explanation":"","math":""},{"title":"","explanation":"","math":""}]}'
+    )
 
     response = client.chat.completions.create(
         model=MODEL_NAME,
         messages=[
-            {"role": "system", "content": "Balas hanya JSON valid untuk soal matematika. Jangan menambahkan teks lain."},
+            {"role": "system", "content": "Balas hanya JSON valid. Singkat. Jangan markdown."},
             {"role": "user", "content": prompt},
         ],
-        temperature=0.9,
+        temperature=0.7,
+        max_tokens=OPENROUTER_MAX_TOKENS,
+        response_format={"type": "json_object"},
+        extra_body={
+            "provider": {
+                "sort": OPENROUTER_PROVIDER_SORT,
+                "preferred_max_latency": 5,
+            }
+        },
     )
 
     content = response.choices[0].message.content

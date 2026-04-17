@@ -67,6 +67,8 @@ function normalizeAnswer(value) {
     .replace(',', '.')
 }
 
+const PROBLEM_FETCH_TIMEOUT_MS = 18000
+
 export default function ProblemPage() {
   const { topicId, skillId } = useParams()
   const navigate = useNavigate()
@@ -95,12 +97,15 @@ export default function ProblemPage() {
   const fetchDynamicProblem = async () => {
     setIsLoadingDynamic(true)
     setFetchError(null)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), PROBLEM_FETCH_TIMEOUT_MS)
     try {
       // Trying to fetch from Golang Core Backend
       const response = await fetch('/api/problems/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: `${topicId}/${skillId}` })
+        body: JSON.stringify({ topic: `${topicId}/${skillId}` }),
+        signal: controller.signal,
       })
       
       if (!response.ok) {
@@ -111,8 +116,13 @@ export default function ProblemPage() {
       setDynamicProblem(data)
     } catch (err) {
       console.warn("Failed to generate problem:", err)
-      setFetchError(err.message || "Gagal terhubung ke Server AI. Pastikan layanan backend berjalan.")
+      setFetchError(
+        err.name === 'AbortError'
+          ? "AI terlalu lama merespons. Coba lagi."
+          : err.message || "Gagal terhubung ke Server AI. Pastikan layanan backend berjalan."
+      )
     } finally {
+      clearTimeout(timeoutId)
       setIsLoadingDynamic(false)
     }
   }
