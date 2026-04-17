@@ -92,12 +92,15 @@ export default function ProblemPage() {
         body: JSON.stringify({ topic: `${topicId}/${skillId}` })
       })
       
-      if (!response.ok) throw new Error("Backend offline")
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}))
+        throw new Error(errData.error || errData.detail || `Server error: ${response.status}`)
+      }
       const data = await response.json()
       setDynamicProblem(data)
     } catch (err) {
-      console.warn("Failed to generate problem. Backend error:", err)
-      setFetchError("Gagal terhubung ke Server AI. Pastikan layanan backend berjalan.")
+      console.warn("Failed to generate problem:", err)
+      setFetchError(err.message || "Gagal terhubung ke Server AI. Pastikan layanan backend berjalan.")
     } finally {
       setIsLoadingDynamic(false)
     }
