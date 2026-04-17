@@ -21,7 +21,8 @@ func NewProblemController(cfg config.Config) *ProblemController {
 }
 
 type ProblemRequest struct {
-	Topic string `json:"topic"`
+	Topic      string `json:"topic"`
+	Difficulty int    `json:"difficulty"`
 }
 
 type EngineRequest struct {
@@ -39,7 +40,10 @@ func (c *ProblemController) GenerateProblem(ctx *gin.Context) {
 	// Forward request to Python Engine Service
 	engineReq := EngineRequest{
 		Topic:      req.Topic,
-		Difficulty: 1, // Default for now
+		Difficulty: req.Difficulty,
+	}
+	if engineReq.Difficulty <= 0 {
+		engineReq.Difficulty = 1
 	}
 
 	engineJSON, _ := json.Marshal(engineReq)

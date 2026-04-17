@@ -106,8 +106,35 @@ export function AuthProvider({ children }) {
     navigate('/auth')
   }
 
+  const applySessionStats = ({ totalProblems = 0, correctCount = 0, gainedXp = null } = {}) => {
+    setUser(prev => {
+      if (!prev) return prev
+
+      const solvedBefore = prev.total_solved || 0
+      const accuracyBefore = prev.total_accuracy || 0
+      const solvedAfter = solvedBefore + totalProblems
+      const pastCorrects = (accuracyBefore / 100) * solvedBefore
+      const newAccuracy = solvedAfter > 0
+        ? ((pastCorrects + correctCount) / solvedAfter) * 100
+        : 0
+      const xpGain = gainedXp ?? (correctCount * 25 + (correctCount === totalProblems ? 50 : 0))
+      const xpAfter = (prev.xp || 0) + xpGain
+
+      const nextUser = {
+        ...prev,
+        xp: xpAfter,
+        level: Math.floor(xpAfter / 200) + 1,
+        total_solved: solvedAfter,
+        total_accuracy: newAccuracy,
+      }
+
+      localStorage.setItem('mathquest_user', JSON.stringify(nextUser))
+      return nextUser
+    })
+  }
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, error, login, register, logout, setError }}>
+    <AuthContext.Provider value={{ user, token, isLoading, error, login, register, logout, applySessionStats, setError }}>
       {children}
     </AuthContext.Provider>
   )

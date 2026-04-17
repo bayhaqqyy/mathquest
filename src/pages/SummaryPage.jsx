@@ -1,6 +1,8 @@
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
+import { markSkillCompleted } from '../utils/skillProgress'
+import { useAuth } from '../contexts/AuthContext'
 
 // Confetti component
 function Confetti() {
@@ -39,52 +41,75 @@ function Confetti() {
 export default function SummaryPage() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { applySessionStats } = useAuth()
   const [showConfetti, setShowConfetti] = useState(true)
+  const [statsApplied, setStatsApplied] = useState(false)
 
-  const { results = [], topicName = 'Aljabar', skillName = 'Persamaan Linear', totalProblems = 5 } = location.state || {}
+  const {
+    results = [],
+    topicId = 'aljabar',
+    skillId = 'linear',
+    topicName = 'Aljabar',
+    skillName = 'Persamaan Linear',
+    totalProblems = 5
+  } = location.state || {}
 
   const correctCount = results.filter(r => r.correct).length
   const accuracy = totalProblems > 0 ? Math.round((correctCount / totalProblems) * 100) : 0
   const isPerfect = accuracy === 100
+  const sessionStatsKey = `mathquest_session_stats_${topicId}_${skillId}_${results.map(item => item.id).join('_')}_${correctCount}_${totalProblems}`
 
   const [backendXp, setBackendXp] = useState(null)
 
   useEffect(() => {
+    markSkillCompleted(topicId, skillId)
+    if (localStorage.getItem(sessionStatsKey)) {
+      setStatsApplied(true)
+      return undefined
+    }
+    localStorage.setItem(sessionStatsKey, '1')
+
     // Show confetti
     const timer = setTimeout(() => setShowConfetti(false), 3000)
 
     // Submit session result to Backend
     const submitResult = async () => {
       const token = localStorage.getItem('mathquest_token')
-      if (!token) return
+      let gainedXp = null
 
-      try {
-        const timeSpent = results.reduce((acc, curr) => acc + (curr.timeSpent || 0), 0) / 1000 // Convert total ms to s
-        const res = await fetch('/api/sessions/result', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            topic: topicName,
-            total_problems: totalProblems,
-            correct_count: correctCount,
-            time_spent: Math.round(timeSpent) || 60
+      if (token) {
+        try {
+          const timeSpent = results.reduce((acc, curr) => acc + (curr.timeSpent || 0), 0) / 1000 // Convert total ms to s
+          const res = await fetch('/api/sessions/result', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              topic: topicId,
+              total_problems: totalProblems,
+              correct_count: correctCount,
+              time_spent: Math.round(timeSpent) || 60
+            })
           })
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setBackendXp(data.gained_xp)
+          if (res.ok) {
+            const data = await res.json()
+            gainedXp = data.gained_xp
+            setBackendXp(gainedXp)
+          }
+        } catch (err) {
+          console.error("Failed to sync session with server", err)
         }
-      } catch (err) {
-        console.error("Failed to sync session with server", err)
       }
+
+      applySessionStats({ totalProblems, correctCount, gainedXp })
+      setStatsApplied(true)
     }
 
-    submitResult()
+    if (!statsApplied) submitResult()
     return () => clearTimeout(timer)
-  }, [results, topicName, totalProblems, correctCount])
+  }, [results, topicId, skillId, totalProblems, correctCount, applySessionStats, statsApplied, sessionStatsKey])
 
   const displayXp = backendXp !== null ? backendXp : (correctCount * 25 + (accuracy >= 80 ? 50 : 0))
 
@@ -218,7 +243,7 @@ export default function SummaryPage() {
           className="w-full flex flex-col space-y-3 mt-6"
         >
           <button 
-             onClick={() => navigate(`/topic/aljabar`)}
+             onClick={() => navigate(`/topic/${topicId}`)}
              className="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold py-4 rounded-full shadow-[0_4px_20px_rgba(45,42,38,0.08)] hover:scale-[0.98] transition-transform duration-200 flex items-center justify-center space-x-2"
           >
             <span>Lanjut Belajar</span>

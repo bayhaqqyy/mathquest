@@ -2,6 +2,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { skillTrees } from '../data/skillTrees'
 import { topics } from '../data/topics'
+import { applySkillProgress } from '../utils/skillProgress'
 
 const statusConfig = {
   completed: {
@@ -30,7 +31,8 @@ const statusConfig = {
 export default function SkillTreePage() {
   const { topicId } = useParams()
   const navigate = useNavigate()
-  const tree = skillTrees[topicId]
+  const baseTree = skillTrees[topicId]
+  const tree = baseTree ? applySkillProgress(baseTree, topicId) : null
   const topic = topics.find(t => t.id === topicId)
 
   if (!tree) {

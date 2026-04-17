@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { skillTrees } from '../data/skillTrees'
 
 export default function ReviewPage() {
   const { topicId, skillId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
   const { problem, isCorrect, userAnswer, currentIndex, totalProblems, results, problemSet } = location.state || {}
+  const tree = skillTrees[topicId]
+  const skill = tree?.skills.find(item => item.id === skillId)
 
   const [currentStep, setCurrentStep] = useState(0)
   const steps = problem?.steps || []
@@ -34,8 +37,10 @@ export default function ReviewPage() {
       navigate('/summary', {
         state: {
           results,
-          topicName: problemSet?.topicName || 'Aljabar',
-          skillName: problemSet?.skillName || 'Persamaan Linear',
+          topicId,
+          skillId,
+          topicName: problemSet?.topicName || tree?.name || topicId,
+          skillName: problemSet?.skillName || skill?.name || skillId,
           totalProblems,
         },
       })

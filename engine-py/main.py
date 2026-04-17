@@ -119,18 +119,29 @@ def fraction_answer(numerator, denominator):
         accepted.append(f"{frac.numerator * 100 / frac.denominator:g}%")
     return answer, accepted
 
-def generate_algebra_problem(skill_id):
+def clamp_difficulty(difficulty):
+    return max(1, min(int(difficulty or 1), 5))
+
+def generate_algebra_problem(skill_id, difficulty=1):
+    difficulty = clamp_difficulty(difficulty)
     if skill_id == "penjumlahan":
-        a, b = random.randint(2, 9), random.randint(2, 9)
-        ans = a + b
+        a, b, c = random.randint(4, 12), random.randint(3, 11), random.randint(2, 9)
+        if difficulty >= 3:
+            ans = a + b - c
+            expression = f"{a}x + {b}x - {c}x"
+            step_math = f"({a} + {b} - {c})x = {ans}x"
+        else:
+            ans = a + b
+            expression = f"{a}x + {b}x"
+            step_math = f"({a} + {b})x = {ans}x"
         return make_payload(
-            "Sederhanakan bentuk aljabar berikut:",
-            f"{a}x + {b}x",
+            "Sederhanakan bentuk aljabar berikut dengan menggabungkan semua suku sejenis:",
+            expression,
             f"{ans}x",
             ["Gabungkan suku yang sama-sama memiliki x.", "Jumlahkan koefisiennya saja."],
             [
-                {"title": "Suku Sejenis", "explanation": "Kedua suku sama-sama memuat x.", "math": f"{a}x + {b}x"},
-                {"title": "Jumlahkan Koefisien", "explanation": "Jumlahkan angka di depan x.", "math": f"({a} + {b})x = {ans}x"},
+                {"title": "Suku Sejenis", "explanation": "Semua suku memuat variabel x.", "math": expression},
+                {"title": "Jumlahkan Koefisien", "explanation": "Operasikan angka di depan x.", "math": step_math},
             ],
             answer_label="Bentuk sederhana",
             accepted_answers=[f"{ans}*x", f"{ans} x"]
@@ -213,22 +224,29 @@ def generate_algebra_problem(skill_id):
             accepted_answers=[f"{x},{y}", f"x={x},y={y}"]
         )
 
-    ans = random.randint(2, 9)
-    a, b = random.randint(2, 5), random.randint(2, 12)
-    c = a * ans + b
-    return make_payload(
-        "Selesaikan persamaan linear berikut untuk mencari nilai x:",
-        f"{a}x + {b} = {c}",
-        ans,
-        ["Pindahkan konstanta ke ruas kanan.", f"Bagi kedua ruas dengan {a}."],
-        [
+    ans = random.randint(3, 14)
+    a, b, d = random.randint(2, 7), random.randint(4, 18), random.randint(1, 5)
+    if difficulty >= 3:
+        c = (a + d) * ans + b
+        expression = f"{a}x + {b} = {c} - {d}x"
+        steps = [
+            {"title": "Kumpulkan Suku x", "explanation": "Pindahkan -dx ke ruas kiri.", "math": f"{a}x + {d}x = {c} - {b}"},
+            {"title": "Sederhanakan", "explanation": "Gabungkan suku x dan hitung ruas kanan.", "math": f"{a + d}x = {c - b}"},
+            {"title": "Cari x", "explanation": f"Bagi kedua ruas dengan {a + d}.", "math": f"x = {(c - b)} / {a + d} = {ans}"},
+        ]
+        hints = ["Pindahkan semua suku x ke satu ruas.", "Pindahkan konstanta ke ruas lain.", f"Bagi dengan koefisien akhir x."]
+    else:
+        c = a * ans + b
+        expression = f"{a}x + {b} = {c}"
+        steps = [
             {"title": "Pindahkan Konstanta", "explanation": f"Kurangi kedua ruas dengan {b}.", "math": f"{a}x = {c} - {b}"},
             {"title": "Cari x", "explanation": f"Bagi kedua ruas dengan {a}.", "math": f"x = {(c - b)} / {a} = {ans}"},
-        ],
-        answer_label="x"
-    )
+        ]
+        hints = ["Pindahkan konstanta ke ruas kanan.", f"Bagi kedua ruas dengan {a}."]
+    return make_payload("Selesaikan persamaan linear berikut untuk mencari nilai x:", expression, ans, hints, steps, answer_label="x")
 
-def generate_probability_problem(skill_id):
+def generate_probability_problem(skill_id, difficulty=1):
+    difficulty = clamp_difficulty(difficulty)
     if skill_id == "permutasi":
         n, r = random.randint(5, 8), random.randint(2, 4)
         ans = math.factorial(n) // math.factorial(n - r)
@@ -260,16 +278,21 @@ def generate_probability_problem(skill_id):
         )
 
     if skill_id == "peluang":
-        target, other = random.randint(2, 6), random.randint(2, 6)
-        total = target + other
+        target, other = random.randint(3, 9), random.randint(4, 10)
+        extra = random.randint(2, 8) if difficulty >= 3 else 0
+        total = target + other + extra
         answer, accepted = fraction_answer(target, total)
+        expression = f"{target} bola merah, {other} bola biru"
+        if extra:
+            expression += f", dan {extra} bola hijau"
         return make_payload(
-            "Tentukan peluang mengambil bola merah secara acak:",
-            f"{target} bola merah dan {other} bola biru",
+            "Dalam sebuah kotak terdapat beberapa bola berwarna. Jika satu bola diambil secara acak, tentukan peluang terambil bola merah:",
+            expression,
             answer,
-            ["Peluang = kejadian yang diinginkan / semua kemungkinan.", "Jumlahkan semua bola sebagai penyebut."],
+            ["Peluang = kejadian yang diinginkan / semua kemungkinan.", "Jumlahkan semua bola sebagai penyebut.", "Sederhanakan pecahan jika memungkinkan."],
             [
                 {"title": "Kejadian", "explanation": "Kejadian yang diminta adalah bola merah.", "math": f"merah = {target}"},
+                {"title": "Total Kemungkinan", "explanation": "Jumlahkan semua bola di kotak.", "math": f"total = {total}"},
                 {"title": "Peluang", "explanation": "Bagi jumlah bola merah dengan total bola.", "math": f"{target}/{total} = {answer}"},
             ],
             answer_label="Peluang",
@@ -290,7 +313,8 @@ def generate_probability_problem(skill_id):
         answer_label="Jumlah paket"
     )
 
-def generate_arithmetic_problem(skill_id):
+def generate_arithmetic_problem(skill_id, difficulty=1):
+    difficulty = clamp_difficulty(difficulty)
     if skill_id == "fpb-kpk":
         a, b = random.randint(12, 48), random.randint(12, 48)
         use_fpb = random.choice([True, False])
@@ -333,15 +357,17 @@ def generate_arithmetic_problem(skill_id):
             ]
         )
 
-    a, b = random.randint(2, 30), random.randint(2, 20)
+    a, b = random.randint(20, 90), random.randint(12, 60)
+    c = random.randint(3, 12)
     op = random.choice(["+", "-", "*"])
     if op == "+":
-        ans, expr, question = a + b, f"{a} + {b}", "Hitung penjumlahan berikut:"
+        ans, expr, question = a + b + (c if difficulty >= 3 else 0), f"{a} + {b}" + (f" + {c}" if difficulty >= 3 else ""), "Selesaikan operasi penjumlahan berikut:"
     elif op == "-":
         a, b = max(a, b), min(a, b)
-        ans, expr, question = a - b, f"{a} - {b}", "Hitung pengurangan berikut:"
+        ans, expr, question = a - b - (c if difficulty >= 3 and a - b > c else 0), f"{a} - {b}" + (f" - {c}" if difficulty >= 3 and a - b > c else ""), "Selesaikan operasi pengurangan berikut:"
     else:
-        ans, expr, question = a * b, f"{a} x {b}", "Hitung perkalian berikut:"
+        b = random.randint(6, 18)
+        ans, expr, question = a * b, f"{a} x {b}", "Selesaikan operasi perkalian berikut:"
     return make_payload(
         question,
         expr,
@@ -353,7 +379,68 @@ def generate_arithmetic_problem(skill_id):
         ]
     )
 
-def generate_geometry_problem(skill_id):
+def generate_geometry_problem(skill_id, difficulty=1):
+    difficulty = clamp_difficulty(difficulty)
+    if skill_id == "titik-garis":
+        x1, y1 = random.randint(-6, 6), random.randint(-6, 6)
+        dx, dy = random.choice([(6, 8), (8, 6), (5, 12), (9, 12), (12, 5)])
+        x2, y2 = x1 + dx, y1 + dy
+        if difficulty >= 3:
+            mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+            answer = f"({mx:g},{my:g})"
+            return make_payload(
+                "Diketahui dua titik pada bidang koordinat. Tentukan titik tengah ruas garis AB:",
+                f"A({x1},{y1}) dan B({x2},{y2})",
+                answer,
+                ["Gunakan rumus titik tengah.", "Rata-ratakan koordinat x dan koordinat y secara terpisah."],
+                [
+                    {"title": "Rumus", "explanation": "Titik tengah adalah rata-rata koordinat kedua titik.", "math": "M = ((x1+x2)/2, (y1+y2)/2)"},
+                    {"title": "Substitusi", "explanation": "Masukkan koordinat A dan B.", "math": f"M = (({x1}+{x2})/2, ({y1}+{y2})/2) = {answer}"},
+                ],
+                answer_label="M",
+                accepted_answers=[f"{mx:g}.{my:g}", f"{mx:g},{my:g}", answer.replace(" ", "")]
+            )
+        ans = int(math.sqrt(dx * dx + dy * dy))
+        return make_payload(
+            "Diketahui dua titik pada bidang koordinat. Tentukan panjang ruas garis AB:",
+            f"A({x1},{y1}) dan B({x2},{y2})",
+            ans,
+            ["Gunakan rumus jarak dua titik.", "Hitung selisih x dan selisih y terlebih dahulu."],
+            [
+                {"title": "Selisih Koordinat", "explanation": "Cari perubahan x dan y dari A ke B.", "math": f"dx = {dx}, dy = {dy}"},
+                {"title": "Rumus Jarak", "explanation": "Gunakan teorema Pythagoras.", "math": f"AB = sqrt({dx}^2 + {dy}^2) = {ans}"},
+            ],
+            answer_label="AB"
+        )
+
+    if skill_id == "segiempat":
+        length, width = random.randint(16, 35), random.randint(9, 24)
+        if difficulty >= 3:
+            perimeter = 2 * (length + width)
+            return make_payload(
+                "Sebuah taman berbentuk persegi panjang akan dipagari di sekelilingnya. Tentukan panjang pagar yang dibutuhkan:",
+                f"panjang = {length} m, lebar = {width} m",
+                perimeter,
+                ["Yang ditanya adalah keliling, bukan luas.", "Keliling persegi panjang = 2(panjang + lebar)."],
+                [
+                    {"title": "Rumus Keliling", "explanation": "Pagar mengelilingi taman.", "math": "K = 2(p + l)"},
+                    {"title": "Hitung", "explanation": "Masukkan panjang dan lebar.", "math": f"K = 2({length} + {width}) = {perimeter}"},
+                ],
+                answer_label="Keliling"
+            )
+        ans = length * width
+        return make_payload(
+            "Hitung luas persegi panjang berikut:",
+            f"panjang = {length} m, lebar = {width} m",
+            ans,
+            ["Rumus luas persegi panjang adalah panjang x lebar.", "Kalikan kedua ukurannya."],
+            [
+                {"title": "Rumus", "explanation": "Gunakan rumus luas persegi panjang.", "math": "L = p x l"},
+                {"title": "Hitung", "explanation": "Substitusi panjang dan lebar.", "math": f"L = {length} x {width} = {ans}"},
+            ],
+            answer_label="Luas"
+        )
+
     if skill_id == "lingkaran":
         r = random.choice([7, 14, 21])
         ans = (2 * 22 * r) // 7
@@ -399,21 +486,9 @@ def generate_geometry_problem(skill_id):
             answer_label="Sudut"
         )
 
-    length, width = random.randint(4, 15), random.randint(3, 12)
-    ans = length * width
-    return make_payload(
-        "Hitung luas persegi panjang berikut:",
-        f"panjang = {length}, lebar = {width}",
-        ans,
-        ["Rumus luas persegi panjang adalah panjang x lebar.", "Kalikan kedua ukurannya."],
-        [
-            {"title": "Rumus", "explanation": "Gunakan rumus luas persegi panjang.", "math": "L = p x l"},
-            {"title": "Hitung", "explanation": "Substitusi panjang dan lebar.", "math": f"L = {length} x {width} = {ans}"},
-        ],
-        answer_label="Luas"
-    )
+    return generate_geometry_problem("titik-garis", difficulty)
 
-def generate_trigonometry_problem(skill_id):
+def generate_trigonometry_problem(skill_id, difficulty=1):
     values = {
         "sin 30": "1/2",
         "cos 60": "1/2",
@@ -435,17 +510,17 @@ def generate_trigonometry_problem(skill_id):
         accepted_answers=[str(float(Fraction(answer))) if "/" in answer else answer]
     )
 
-def generate_local_problem(topic_id, skill_id):
+def generate_local_problem(topic_id, skill_id, difficulty=1):
     if topic_id == "aljabar":
-        return generate_algebra_problem(skill_id)
+        return generate_algebra_problem(skill_id, difficulty)
     if topic_id == "probabilitas":
-        return generate_probability_problem(skill_id)
+        return generate_probability_problem(skill_id, difficulty)
     if topic_id == "aritmatika":
-        return generate_arithmetic_problem(skill_id)
+        return generate_arithmetic_problem(skill_id, difficulty)
     if topic_id == "geometri":
-        return generate_geometry_problem(skill_id)
+        return generate_geometry_problem(skill_id, difficulty)
     if topic_id == "trigonometri":
-        return generate_trigonometry_problem(skill_id)
+        return generate_trigonometry_problem(skill_id, difficulty)
     raise ValueError(f"Topik belum didukung: {topic_id}")
 
 def extract_json_object(content):
@@ -564,7 +639,7 @@ async def generate_problem(req: GenerateRequest):
 
     if topic_id in TOPIC_SKILLS:
         try:
-            payload = generate_local_problem(topic_id, skill_id)
+            payload = generate_local_problem(topic_id, skill_id, req.difficulty)
             payload["source"] = "local"
             return payload
         except Exception as err:

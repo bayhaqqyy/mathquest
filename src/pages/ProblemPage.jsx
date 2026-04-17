@@ -60,11 +60,15 @@ function ExitModal({ isOpen, onConfirm, onCancel }) {
 }
 
 function normalizeAnswer(value) {
-  return String(value ?? '')
+  const text = String(value ?? '')
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '')
-    .replace(',', '.')
+    .replace(/[()]/g, '')
+
+  return text.includes('/')
+    ? text
+    : text.replace(/,/g, '.')
 }
 
 const PROBLEM_FETCH_TIMEOUT_MS = 18000
@@ -104,7 +108,7 @@ export default function ProblemPage() {
       const response = await fetch('/api/problems/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: `${topicId}/${skillId}` }),
+        body: JSON.stringify({ topic: `${topicId}/${skillId}`, difficulty: currentIndex + 1 }),
         signal: controller.signal,
       })
       
