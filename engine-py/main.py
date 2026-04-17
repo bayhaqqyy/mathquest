@@ -37,7 +37,7 @@ if OPENROUTER_API_KEY:
     )
 
 # Use a specific free model by default. Override with OPENROUTER_MODEL if needed.
-MODEL_NAME = os.getenv("OPENROUTER_MODEL", "google/gemma-4-26b-a4b-it:free")
+MODEL_NAME = os.getenv("OPENROUTER_MODEL", "arcee-ai/trinity-large-preview:free")
 
 class GenerateRequest(BaseModel):
     topic: str
