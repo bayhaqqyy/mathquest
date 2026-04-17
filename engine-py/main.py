@@ -36,8 +36,8 @@ if OPENROUTER_API_KEY:
         max_retries=0,
     )
 
-# Use OpenRouter's free router by default. Override with OPENROUTER_MODEL for paid models.
-MODEL_NAME = os.getenv("OPENROUTER_MODEL", "openrouter/free")
+# Use a specific free model by default. Override with OPENROUTER_MODEL if needed.
+MODEL_NAME = os.getenv("OPENROUTER_MODEL", "google/gemma-4-26b-a4b-it:free")
 
 class GenerateRequest(BaseModel):
     topic: str
