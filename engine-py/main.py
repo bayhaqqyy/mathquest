@@ -1,6 +1,8 @@
 import os
 import random
 import json
+import math
+from fractions import Fraction
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
