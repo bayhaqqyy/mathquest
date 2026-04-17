@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { problems } from '../data/problems'
+import { useSettings } from '../contexts/SettingsContext'
 
 // Custom Exit Confirmation Modal
 function ExitModal({ isOpen, onConfirm, onCancel }) {
@@ -50,8 +51,13 @@ function ExitModal({ isOpen, onConfirm, onCancel }) {
               >
                 Ya, Keluar
               </motion.button>
-import ExitModal from '../components/ExitModal'
-import { useSettings } from '../contexts/SettingsContext'
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
 
 export default function ProblemPage() {
   const { topicId, skillId } = useParams()
