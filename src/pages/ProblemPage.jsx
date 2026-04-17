@@ -118,8 +118,8 @@ export default function ProblemPage() {
       console.warn("Failed to generate problem:", err)
       setFetchError(
         err.name === 'AbortError'
-          ? "AI terlalu lama merespons. Coba lagi."
-          : err.message || "Gagal terhubung ke Server AI. Pastikan layanan backend berjalan."
+          ? "Generator soal terlalu lama merespons. Coba lagi."
+          : err.message || "Gagal terhubung ke generator soal. Pastikan layanan backend berjalan."
       )
     } finally {
       clearTimeout(timeoutId)
@@ -253,8 +253,8 @@ export default function ProblemPage() {
         {isLoadingDynamic ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent flex items-center justify-center rounded-full animate-spin mb-4" />
-            <h3 className="font-headline font-semibold text-lg text-on-surface">AI Sedang Meracik Soal...</h3>
-            <p className="text-on-surface-variant text-sm mt-2">Menyesuaikan kesulitan untukmu.</p>
+            <h3 className="font-headline font-semibold text-lg text-on-surface">Sedang Meracik Soal...</h3>
+            <p className="text-on-surface-variant text-sm mt-2">Menyesuaikan topik latihanmu.</p>
           </div>
         ) : fetchError ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">

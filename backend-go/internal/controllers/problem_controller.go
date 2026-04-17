@@ -50,7 +50,7 @@ func (c *ProblemController) GenerateProblem(ctx *gin.Context) {
 	resp, err := client.Post(engineURL, "application/json", bytes.NewBuffer(engineJSON))
 	
 	if err != nil {
-		ctx.JSON(http.StatusServiceUnavailable, gin.H{"error": "AI terlalu lama merespons atau engine tidak tersedia. Coba lagi."})
+		ctx.JSON(http.StatusServiceUnavailable, gin.H{"error": "Generator soal terlalu lama merespons atau engine tidak tersedia. Coba lagi."})
 		return
 	}
 	defer resp.Body.Close()
@@ -65,7 +65,7 @@ func (c *ProblemController) GenerateProblem(ctx *gin.Context) {
 				return
 			}
 		}
-		ctx.JSON(resp.StatusCode, gin.H{"error": "AI gagal membuat soal. Coba lagi."})
+		ctx.JSON(resp.StatusCode, gin.H{"error": "Generator soal gagal membuat soal. Coba lagi."})
 		return
 	}
 
