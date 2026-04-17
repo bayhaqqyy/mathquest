@@ -7,16 +7,18 @@ import (
 )
 
 type User struct {
-	ID        uint           `gorm:"primaryKey" json:"id"`
-	Email     string         `gorm:"uniqueIndex;not null" json:"email"`
-	Name      string         `json:"name"`
-	Password  string         `gorm:"not null" json:"-"` // never return password in JSON
-	XP        int            `gorm:"default:0" json:"xp"`
-	Level     int            `gorm:"default:1" json:"level"`
-	Streak    int            `gorm:"default:0" json:"streak"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	ID            uint           `gorm:"primaryKey" json:"id"`
+	Email         string         `gorm:"uniqueIndex;not null" json:"email"`
+	Name          string         `json:"name"`
+	Password      string         `gorm:"not null" json:"-"` // never return password in JSON
+	XP            int            `gorm:"default:0" json:"xp"`
+	Level         int            `gorm:"default:1" json:"level"`
+	Streak        int            `gorm:"default:0" json:"streak"`
+	TotalSolved   int            `gorm:"default:0" json:"total_solved"`
+	TotalAccuracy float64        `gorm:"default:0.0" json:"accuracy"` // e.g., 85.5%
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 type Session struct {
