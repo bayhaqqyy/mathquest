@@ -30,8 +30,8 @@ if OPENROUTER_API_KEY:
         api_key=OPENROUTER_API_KEY,
     )
 
-# Use 'openrouter/auto' as requested or default to a fast model
-MODEL_NAME = "openrouter/auto"
+# Use OpenRouter's free router by default. Override with OPENROUTER_MODEL for paid models.
+MODEL_NAME = os.getenv("OPENROUTER_MODEL", "openrouter/free")
 
 class GenerateRequest(BaseModel):
     topic: str
@@ -236,6 +236,11 @@ async def generate_problem(req: GenerateRequest):
             raise
         except Exception as ai_err:
             print(f"AI problem generation failed: {ai_err}")
+            if "402" in str(ai_err) or "Insufficient credits" in str(ai_err):
+                raise HTTPException(
+                    status_code=402,
+                    detail="OpenRouter menolak request karena credit tidak cukup. Pakai OPENROUTER_MODEL=openrouter/free atau tambah credit."
+                )
             raise HTTPException(status_code=502, detail="AI gagal generate soal yang valid. Coba lagi.")
     raise HTTPException(status_code=400, detail=f"Topik belum didukung: {req.topic}")
 
