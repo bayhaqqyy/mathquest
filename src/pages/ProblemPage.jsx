@@ -86,7 +86,7 @@ export default function ProblemPage() {
     setFetchError(null)
     try {
       // Trying to fetch from Golang Core Backend
-      const response = await fetch('http://localhost:8080/api/problems/generate', {
+      const response = await fetch('/api/problems/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic: `${topicId}/${skillId}` })

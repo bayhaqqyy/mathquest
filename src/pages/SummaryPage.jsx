@@ -60,7 +60,7 @@ export default function SummaryPage() {
 
       try {
         const timeSpent = results.reduce((acc, curr) => acc + (curr.timeSpent || 0), 0) / 1000 // Convert total ms to s
-        const res = await fetch('http://localhost:8080/api/sessions/result', {
+        const res = await fetch('/api/sessions/result', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
