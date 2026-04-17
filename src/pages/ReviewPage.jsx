@@ -27,10 +27,8 @@ export default function ReviewPage() {
     if (nextIndex < totalProblems) {
       // Go to next problem
       navigate(`/session/${topicId}/${skillId}`, {
-        state: { startIndex: nextIndex },
+        state: { startIndex: nextIndex, results, problemSet },
       })
-      // Force remount by navigating
-      window.location.href = `/session/${topicId}/${skillId}`
     } else {
       // Session complete — go to summary
       navigate('/summary', {

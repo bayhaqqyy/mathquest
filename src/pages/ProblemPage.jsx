@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSettings } from '../contexts/SettingsContext'
 
@@ -59,19 +59,30 @@ function ExitModal({ isOpen, onConfirm, onCancel }) {
   )
 }
 
+function normalizeAnswer(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(',', '.')
+}
+
 export default function ProblemPage() {
   const { topicId, skillId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { settings, playSound } = useSettings()
 
   const totalProblems = 5 // Hardcoded 5 problems per session for production
+  const initialIndex = Number.isInteger(location.state?.startIndex) ? location.state.startIndex : 0
+  const initialResults = Array.isArray(location.state?.results) ? location.state.results : []
 
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const [currentIndex] = useState(initialIndex)
   const [answer, setAnswer] = useState('')
   const [hintsUsed, setHintsUsed] = useState(0)
   const [showHint, setShowHint] = useState(false)
   const [isCorrect, setIsCorrect] = useState(null)
-  const [results, setResults] = useState([])
+  const [results, setResults] = useState(initialResults)
   const [startTime] = useState(Date.now())
   const [showExitModal, setShowExitModal] = useState(false)
   const [timeLeft, setTimeLeft] = useState(settings.timer ? 180 : null) // 3 minutes per problem if setting is ON
@@ -133,23 +144,27 @@ export default function ProblemPage() {
   const handleTimeUp = () => {
     setIsCorrect(false)
     playSound('error')
-    setResults(prev => [...prev, { id: problem?.id, correct: false, hintsUsed, timeSpent: Date.now() - startTime }])
+    const nextResults = [...results, { id: problem?.id, correct: false, hintsUsed, timeSpent: Date.now() - startTime }]
+    setResults(nextResults)
     setTimeout(() => {
       navigate(`/review/${topicId}/${skillId}`, {
-        state: { problem, isCorrect: false, userAnswer: 'Waktu Habis', currentIndex, totalProblems, results: [...results, { id: problem?.id, correct: false, hintsUsed }], problemSet: null }
+        state: { problem, isCorrect: false, userAnswer: 'Waktu Habis', currentIndex, totalProblems, results: nextResults, problemSet: null }
       })
     }, 1200)
   }
 
   const handleSubmit = () => {
-    if ((!answer.trim() && timeLeft > 0) || !problem || isCorrect !== null) return
-    const correct = answer.trim() === problem?.answer
+    if (!answer.trim() || !problem || isCorrect !== null) return
+    const acceptedAnswers = problem?.acceptedAnswers?.length ? problem.acceptedAnswers : [problem?.answer]
+    const normalizedAnswer = normalizeAnswer(answer)
+    const correct = acceptedAnswers.some(item => normalizeAnswer(item) === normalizedAnswer)
     setIsCorrect(correct)
     
     // Play sound based on global setting
     playSound(correct ? 'success' : 'error')
 
-    setResults(prev => [...prev, { id: problem?.id, correct, hintsUsed, timeSpent: Date.now() - startTime }])
+    const nextResults = [...results, { id: problem?.id, correct, hintsUsed, timeSpent: Date.now() - startTime }]
+    setResults(nextResults)
 
     // Auto-advance after showing feedback
     setTimeout(() => {
@@ -161,7 +176,7 @@ export default function ProblemPage() {
           userAnswer: answer,
           currentIndex,
           totalProblems,
-          results: [...results, { id: problem?.id, correct, hintsUsed }],
+          results: nextResults,
           problemSet: null,
         },
       })
@@ -321,8 +336,10 @@ export default function ProblemPage() {
             <div className="mb-4">
               <label className="text-sm font-medium text-on-surface-variant mb-2 block">Jawaban:</label>
               <div className="flex gap-3">
-                <div className="flex-1 relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-on-surface-variant text-sm">x =</span>
+                <div className="flex-1 flex items-center bg-surface-container-lowest border border-outline-variant/40 rounded-xl focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all overflow-hidden">
+                  <span className="shrink-0 pl-4 pr-2 font-mono text-on-surface-variant text-sm whitespace-nowrap">
+                    {problem?.answerLabel || 'Jawaban'} =
+                  </span>
                   <input
                     type="text"
                     value={answer}
@@ -330,7 +347,7 @@ export default function ProblemPage() {
                     onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                     placeholder="..."
                     disabled={isCorrect !== null}
-                    className="w-full pl-12 pr-4 py-3.5 bg-surface-container-lowest border border-outline-variant/40 rounded-xl font-mono text-lg text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50"
+                    className="min-w-0 flex-1 pr-4 py-3.5 bg-transparent font-mono text-lg text-on-surface focus:outline-none disabled:opacity-50"
                   />
                 </div>
               </div>
