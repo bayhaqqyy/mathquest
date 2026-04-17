@@ -1,0 +1,91 @@
+// Topic data — structured for the dashboard and skill tree
+export const topics = [
+  {
+    id: 'aljabar',
+    name: 'Aljabar',
+    icon: '📊',
+    progress: 72,
+    level: 'Menengah',
+    unlocked: true,
+    requiredLevel: 1,
+    description: 'Persamaan, variabel, dan ekspresi aljabar',
+    color: 'primary',
+  },
+  {
+    id: 'geometri',
+    name: 'Geometri',
+    icon: '📐',
+    progress: 35,
+    level: 'Dasar',
+    unlocked: true,
+    requiredLevel: 1,
+    description: 'Bentuk, ukuran, dan sifat ruang',
+    color: 'secondary',
+  },
+  {
+    id: 'kalkulus',
+    name: 'Kalkulus',
+    icon: '∫',
+    progress: 0,
+    level: 'Terkunci',
+    unlocked: false,
+    requiredLevel: 10,
+    description: 'Limit, turunan, dan integral',
+    color: 'tertiary',
+  },
+  {
+    id: 'probabilitas',
+    name: 'Probabilitas',
+    icon: '🎲',
+    progress: 0,
+    level: 'Dasar',
+    unlocked: true,
+    requiredLevel: 1,
+    description: 'Peluang, statistik, dan kombinatorik',
+    color: 'primary',
+  },
+  {
+    id: 'trigonometri',
+    name: 'Trigonometri',
+    icon: '📏',
+    progress: 15,
+    level: 'Dasar',
+    unlocked: true,
+    requiredLevel: 3,
+    description: 'Sinus, cosinus, dan tangen',
+    color: 'secondary',
+  },
+  {
+    id: 'aritmatika',
+    name: 'Aritmatika',
+    icon: '🔢',
+    progress: 90,
+    level: 'Lanjut',
+    unlocked: true,
+    requiredLevel: 1,
+    description: 'Operasi bilangan dan pola',
+    color: 'primary',
+  },
+]
+
+// Current learning session (continue card)
+export const currentSession = {
+  topicId: 'aljabar',
+  topicName: 'Aljabar Dasar',
+  skillName: 'Persamaan Linear',
+  icon: '📐',
+  progress: 72,
+  remaining: 3,
+}
+
+// User stats
+export const userStats = {
+  name: 'Rafli',
+  level: 5,
+  xp: 850,
+  streak: 12,
+  gems: 25,
+  totalSolved: 152,
+  accuracy: 85,
+  avatar: null,
+}

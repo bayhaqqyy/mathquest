@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: mathquest_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: mathquest
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  py_engine:
+    build:
+      context: ./engine-py
+    container_name: mathquest_engine
+    environment:
+      # API Key must be set here or drawn from .env
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    ports:
+      - "5000:5000"
+
+  go_backend:
+    build:
+      context: ./backend-go
+    container_name: mathquest_core
+    depends_on:
+      db:
+        condition: service_healthy
+      py_engine:
+        condition: service_started
+    environment:
+      - PORT=8080
+      - DATABASE_URL=host=db user=postgres password=password123 dbname=mathquest port=5432 sslmode=disable
+      - JWT_SECRET=supersecret-production-key-mathquest
+      - ENGINE_API_URL=http://py_engine:5000
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: .
+    container_name: mathquest_web
+    depends_on:
+      - go_backend
+    ports:
+      - "3000:80"
+
+volumes:
+  postgres_data:
