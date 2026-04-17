@@ -13,17 +13,42 @@ export function AuthProvider({ children }) {
     return localStorage.getItem('mathquest_token') || null
   })
   
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (user) localStorage.setItem('mathquest_user', JSON.stringify(user))
-    else localStorage.removeItem('mathquest_user')
-
     if (token) localStorage.setItem('mathquest_token', token)
     else localStorage.removeItem('mathquest_token')
-  }, [user, token])
+  }, [token])
+
+  // Fetch actual user data from DB if token exists on mount
+  useEffect(() => {
+    const fetchMe = async () => {
+      if (!token) {
+        setIsLoading(false)
+        return
+      }
+      try {
+        const response = await fetch('http://localhost:8080/api/users/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setUser(data.data)
+        } else {
+          // Token invalid or expired
+          setToken(null)
+          setUser(null)
+        }
+      } catch (err) {
+        console.warn("Backend offline, unable to fetch user profile")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchMe()
+  }, [token])
 
   const login = async (email, password) => {
     setIsLoading(true)

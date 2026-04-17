@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { problems } from '../data/problems'
 import { useSettings } from '../contexts/SettingsContext'
 
 // Custom Exit Confirmation Modal
 function ExitModal({ isOpen, onConfirm, onCancel }) {
+  // ... (unchanged)
   return (
     <AnimatePresence>
       {isOpen && (
@@ -64,9 +64,7 @@ export default function ProblemPage() {
   const navigate = useNavigate()
   const { settings, playSound } = useSettings()
 
-  // Get problem set (fallback to aljabar-linear static mock)
-  const problemSet = problems[`${topicId}-${skillId}`] || problems['aljabar-linear']
-  const totalProblems = problemSet.problems.length
+  const totalProblems = 5 // Hardcoded 5 problems per session for production
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answer, setAnswer] = useState('')
@@ -81,9 +79,11 @@ export default function ProblemPage() {
   // State for dynamic problems from Backend
   const [dynamicProblem, setDynamicProblem] = useState(null)
   const [isLoadingDynamic, setIsLoadingDynamic] = useState(true)
+  const [fetchError, setFetchError] = useState(null)
 
   const fetchDynamicProblem = async () => {
     setIsLoadingDynamic(true)
+    setFetchError(null)
     try {
       // Trying to fetch from Golang Core Backend
       const response = await fetch('http://localhost:8080/api/problems/generate', {
@@ -96,8 +96,8 @@ export default function ProblemPage() {
       const data = await response.json()
       setDynamicProblem(data)
     } catch (err) {
-      console.warn("Using static fallback because backend is offline:", err)
-      setDynamicProblem(null) // trigger fallback
+      console.warn("Failed to generate problem. Backend error:", err)
+      setFetchError("Gagal terhubung ke Server AI. Pastikan layanan backend berjalan.")
     } finally {
       setIsLoadingDynamic(false)
     }
@@ -124,30 +124,29 @@ export default function ProblemPage() {
     }
   }, [timeLeft, isCorrect, settings.timer])
 
-  // Use dynamic if available, otherwise static
-  const problem = dynamicProblem || problemSet.problems[currentIndex]
+  const problem = dynamicProblem
   const progress = ((currentIndex) / totalProblems) * 100
 
   const handleTimeUp = () => {
     setIsCorrect(false)
     playSound('error')
-    setResults(prev => [...prev, { id: problem.id, correct: false, hintsUsed, timeSpent: Date.now() - startTime }])
+    setResults(prev => [...prev, { id: problem?.id, correct: false, hintsUsed, timeSpent: Date.now() - startTime }])
     setTimeout(() => {
       navigate(`/review/${topicId}/${skillId}`, {
-        state: { problem, isCorrect: false, userAnswer: 'Waktu Habis', currentIndex, totalProblems, results: [...results, { id: problem.id, correct: false, hintsUsed }], problemSet }
+        state: { problem, isCorrect: false, userAnswer: 'Waktu Habis', currentIndex, totalProblems, results: [...results, { id: problem?.id, correct: false, hintsUsed }], problemSet: null }
       })
     }, 1200)
   }
 
   const handleSubmit = () => {
     if ((!answer.trim() && timeLeft > 0) || !problem || isCorrect !== null) return
-    const correct = answer.trim() === problem.answer
+    const correct = answer.trim() === problem?.answer
     setIsCorrect(correct)
     
     // Play sound based on global setting
     playSound(correct ? 'success' : 'error')
 
-    setResults(prev => [...prev, { id: problem.id, correct, hintsUsed, timeSpent: Date.now() - startTime }])
+    setResults(prev => [...prev, { id: problem?.id, correct, hintsUsed, timeSpent: Date.now() - startTime }])
 
     // Auto-advance after showing feedback
     setTimeout(() => {
@@ -159,15 +158,15 @@ export default function ProblemPage() {
           userAnswer: answer,
           currentIndex,
           totalProblems,
-          results: [...results, { id: problem.id, correct, hintsUsed }],
-          problemSet,
+          results: [...results, { id: problem?.id, correct, hintsUsed }],
+          problemSet: null,
         },
       })
     }, 1200)
   }
 
   const handleHint = () => {
-    if (hintsUsed < problem.hints.length && isCorrect === null) {
+    if (problem?.hints && hintsUsed < problem.hints.length && isCorrect === null) {
       setHintsUsed(prev => prev + 1)
       setShowHint(true)
     }
@@ -223,32 +222,48 @@ export default function ProblemPage() {
 
       {/* Problem Content */}
       <main className="flex-1 px-6 flex flex-col">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentIndex}
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-            transition={{ duration: 0.3 }}
-            className="flex-1 flex flex-col"
-          >
-            {/* Question */}
-            <div className="mb-4 mt-4">
-              <p className="text-on-surface-variant text-sm font-medium mb-4">{problem.question || "Selesaikan persamaan berikut:"}</p>
-              
-              {/* Dynamic Graph from Matplotlib */}
-              {problem.graph && (
-                <div className="mb-4 rounded-xl overflow-hidden shadow-sm border border-surface-variant/20 flex justify-center bg-white p-2">
-                  <img src={problem.graph} alt="Grafik fungsi" className="max-w-full h-auto object-contain max-h-48" />
-                </div>
-              )}
+        {isLoadingDynamic ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent flex items-center justify-center rounded-full animate-spin mb-4" />
+            <h3 className="font-headline font-semibold text-lg text-on-surface">AI Sedang Meracik Soal...</h3>
+            <p className="text-on-surface-variant text-sm mt-2">Menyesuaikan kesulitan untukmu.</p>
+          </div>
+        ) : fetchError ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+            <span className="material-symbols-outlined text-[64px] text-error mb-4">cloud_off</span>
+            <h3 className="font-headline font-semibold text-xl text-error mb-2">Gagal Memuat Soal</h3>
+            <p className="text-on-surface-variant text-sm mb-6 max-w-xs">{fetchError}</p>
+            <button onClick={fetchDynamicProblem} className="px-6 py-3 bg-primary text-on-primary rounded-xl font-medium shadow-md">
+              Coba Lagi
+            </button>
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentIndex}
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+              transition={{ duration: 0.3 }}
+              className="flex-1 flex flex-col"
+            >
+              {/* Question */}
+              <div className="mb-4 mt-4">
+                <p className="text-on-surface-variant text-sm font-medium mb-4">{problem?.question || "Selesaikan persamaan berikut:"}</p>
+                
+                {/* Dynamic Graph from Matplotlib */}
+                {problem?.graph && (
+                  <div className="mb-4 rounded-xl overflow-hidden shadow-sm border border-surface-variant/20 flex justify-center bg-white p-2">
+                    <img src={problem.graph} alt="Grafik" className="max-w-full h-auto object-contain max-h-48" />
+                  </div>
+                )}
 
-              <div className="bg-surface-container-lowest rounded-xl p-6 shadow-[0_4px_20px_rgba(45,42,38,0.06)] border border-surface-variant/20">
-                <p className="font-mono text-xl font-semibold text-on-surface text-center tracking-wide">
-                  {problem.expression}
-                </p>
+                <div className="bg-surface-container-lowest rounded-xl p-6 shadow-[0_4px_20px_rgba(45,42,38,0.06)] border border-surface-variant/20">
+                  <p className="font-mono text-xl font-semibold text-on-surface text-center tracking-wide">
+                    {problem?.expression}
+                  </p>
+                </div>
               </div>
-            </div>
 
             {/* Hints */}
             <AnimatePresence>
@@ -344,6 +359,7 @@ export default function ProblemPage() {
             </div>
           </motion.div>
         </AnimatePresence>
+        )}
       </main>
     </div>
   )

@@ -45,17 +45,52 @@ export default function SummaryPage() {
 
   const correctCount = results.filter(r => r.correct).length
   const accuracy = totalProblems > 0 ? Math.round((correctCount / totalProblems) * 100) : 0
-  const xpEarned = correctCount * 25 + (accuracy >= 80 ? 50 : 0)
   const isPerfect = accuracy === 100
 
+  const [backendXp, setBackendXp] = useState(null)
+
   useEffect(() => {
+    // Show confetti
     const timer = setTimeout(() => setShowConfetti(false), 3000)
+
+    // Submit session result to Backend
+    const submitResult = async () => {
+      const token = localStorage.getItem('mathquest_token')
+      if (!token) return
+
+      try {
+        const timeSpent = results.reduce((acc, curr) => acc + (curr.timeSpent || 0), 0) / 1000 // Convert total ms to s
+        const res = await fetch('http://localhost:8080/api/sessions/result', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            topic: topicName,
+            total_problems: totalProblems,
+            correct_count: correctCount,
+            time_spent: Math.round(timeSpent) || 60
+          })
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setBackendXp(data.gained_xp)
+        }
+      } catch (err) {
+        console.error("Failed to sync session with server", err)
+      }
+    }
+
+    submitResult()
     return () => clearTimeout(timer)
-  }, [])
+  }, [results, topicName, totalProblems, correctCount])
+
+  const displayXp = backendXp !== null ? backendXp : (correctCount * 25 + (accuracy >= 80 ? 50 : 0))
 
   const stats = [
     { label: 'Benar', value: `${correctCount}/${totalProblems}`, emoji: '✅' },
-    { label: 'XP', value: `+${xpEarned}`, emoji: '⚡' },
+    { label: 'XP', value: `+${displayXp}`, emoji: '⚡' },
     { label: 'Akurasi', value: `${accuracy}%`, emoji: '🎯' },
   ]
 
