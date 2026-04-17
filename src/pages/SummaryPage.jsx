@@ -146,7 +146,7 @@ export default function SummaryPage() {
           <div className="bg-surface-container-low rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-surface-container transition-colors">
             <div className="absolute -top-2 -right-2 w-8 h-8 bg-primary-container rounded-full blur-md opacity-50 group-hover:opacity-100 transition-opacity"></div>
             <span className="material-symbols-outlined text-primary mb-1">stars</span>
-            <span className="font-bold text-lg text-primary">+{xpEarned}</span>
+            <span className="font-bold text-lg text-primary">+{displayXp}</span>
             <span className="text-xs text-on-surface-variant font-medium">XP</span>
           </div>
 
